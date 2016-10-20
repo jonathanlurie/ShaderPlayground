@@ -1,3 +1,5 @@
+This repo is just to keep track of my learning of shaders language (as custom shaders in ThreeJS).
+
 ## shader_cube_moving_texture.html
 Displays jpeg strip as a "cinematic" since the strip is composed of 64 images of the brain at different depth.
 
