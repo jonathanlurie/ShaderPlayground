@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>three.js webgl - materials - shaders [custom]</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <style>
+  body {
+    color: #ffffff;
+    font-family:Monospace;
+    font-size:13px;
+    text-align:center;
+    font-weight: bold;
+
+    background-color: #050505;
+    margin: 0px;
+    overflow: hidden;
+  }
+
+  #info {
+    position: absolute;
+    top: 0px; width: 100%;
+    padding: 5px;
+  }
+
+  a {
+
+    color: #ffffff;
+  }
+
+  #oldie a { color:#da0 }
+  </style>
+</head>
+<body>
+
+  <div id="container"></div>
+
+  <script src="js/three.js"></script>
+  <script src="js/OrbitControls.js"></script>
+  <script src="js/dat.gui.js"></script>
+
+
+
+
+  <!-- a regular version that just display one image from the strip image -->
+  <!-- The index 0 of image (within strip) is at the bottom of the strip -->
+  <script id="fragment_shader1_custom3" type="x-shader/x-fragment">
+
+  uniform sampler2D texture;
+  uniform float imageIndex;
+  varying vec4 worldCoord;
+
+  varying vec2 vUv;
+
+  bool isNan(float val)
+  {
+    return (val <= 0.0 || 0.0 <= val) ? false : true;
+  }
+
+  /*
+    position is a [x, y, z] vector in [0.0; 1.0] within the texture chunk.
+    x = u
+    y = v
+    z = depth (image number within the strip)
+  */
+  vec4 getColorFrom3DTexture( vec3 chunkPosition){
+    // number of image that compose the strip
+    float numberOfImagePerStripY = 64.0;
+
+    // each image of the texture is square-shaped
+    float numberOfPixelPerSide = 64.0;
+
+
+    // normalized starting point depending on the image index
+    float yOffsetNormalized = float(int(chunkPosition.z * numberOfImagePerStripY)) / numberOfImagePerStripY;
+
+
+    //float stripX = chunkPosition.x;
+    float stripX = float(int(chunkPosition.x * numberOfPixelPerSide)) / numberOfPixelPerSide;
+
+
+    //float stripY = chunkPosition.y / numberOfImagePerStripY + yOffsetNormalized;
+
+
+    float stripY = (float(int(chunkPosition.y * numberOfPixelPerSide)) / numberOfPixelPerSide) / numberOfImagePerStripY + yOffsetNormalized;
+
+    vec2 posWithinStrip = vec2(stripX, stripY);
+    vec4 colorFromTexture = texture2D(texture, posWithinStrip);
+
+    return colorFromTexture;
+  }
+
+  void main( void ) {
+    // the position within the shader
+    vec2 shaderPos = vUv;
+
+    if(worldCoord.x < 0.0 || worldCoord.x >= 1.0 || worldCoord.y < 0.0 || worldCoord.y >= 1.0 || worldCoord.z < 0.0 || worldCoord.z >= 1.0){
+      gl_FragColor = vec4(1.0, 1.0 , 0.0, 1.0);
+    }else{
+
+      //vec3 chunkPosition = vec3(shaderPos.x, shaderPos.y, 0.018);
+      vec3 chunkPosition = vec3(worldCoord.x, worldCoord.y, worldCoord.z);
+
+      gl_FragColor = getColorFrom3DTexture(chunkPosition);
+      //gl_FragColor = vec4(worldCoord.x, worldCoord.y, worldCoord.z , 0.0);
+
+    }
+  }
+
+  </script>
+
+
+
+
+  <script id="vertexShader_custom1" type="x-shader/x-vertex">
+
+  varying vec2 vUv;
+  varying vec4 worldCoord;
+
+  void main()
+  {
+    vUv = uv;
+    vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+    gl_Position = projectionMatrix * mvPosition;
+    worldCoord = modelMatrix * vec4( position, 1.0 );
+  }
+
+  </script>
+
+
+
+
+
+  <script>
+
+  var container;
+  var camera, scene, renderer;
+  var uniforms;
+  var clock = new THREE.Clock();
+
+  var globalCounter = 0;
+  var tileNumber = 64;
+  var tileIterator = 1;
+
+  var PI = Math.PI;
+
+  var guiVar = {
+    posx: 0.5,
+    posy: 0.5,
+    posz: 0.0,
+    rotx: 0.0,
+    roty: 0.0,
+    rotz: 0.0
+  }
+
+  var gui = new dat.GUI();
+  gui.add(guiVar, 'posx', 0, 1).name("position x").step(0.000000001);
+  gui.add(guiVar, 'posy', 0, 1).name("position y").step(0.000000001);
+  gui.add(guiVar, 'posz', 0, 1).name("position z").step(0.000000001);
+
+  gui.add(guiVar, 'rotx', -PI/2, PI/2).name("rotation x").step(0.01);
+  gui.add(guiVar, 'roty', -PI/2, PI/2).name("rotation y").step(0.01);
+  gui.add(guiVar, 'rotz', -PI/2, PI/2).name("rotation z").step(0.01);
+
+  init();
+  animate();
+
+  console.log(scene.children[ 0 ]);
+
+  function init() {
+    container = document.getElementById( 'container' );
+    camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 0.1, 3000 );
+    camera.position.z = 7;
+    scene = new THREE.Scene();
+
+    var geometry = new THREE.PlaneBufferGeometry( 1, 1, 1 );
+    //var geometry = new THREE.PlaneGeometry( 1, 1, 1 );
+
+    //var texFile = "textures/brain_strip.jpg";
+    var texFile = "textures/brain_strip.png";
+    //var texFile = "textures/strip.png";
+    //var texFile = "textures/strip3.png";
+    //var texFile = "textures/rainbow2.png";
+
+    uniforms = {
+      imageIndex: {value: 0.0},
+      texture:    { value: new THREE.TextureLoader().load( texFile ) }
+    };
+
+
+    var material = new THREE.ShaderMaterial( {
+      uniforms: uniforms,
+      vertexShader: document.getElementById( 'vertexShader_custom1' ).textContent,
+      fragmentShader: document.getElementById('fragment_shader1_custom3' ).textContent
+    });
+
+    var mesh = new THREE.Mesh( geometry, material );
+    mesh.position.set(0.5, 0.5, 0.0);
+    scene.add( mesh );
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setPixelRatio( window.devicePixelRatio );
+    container.appendChild( renderer.domElement );
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    onWindowResize();
+    window.addEventListener( 'resize', onWindowResize, false );
+  }
+
+
+  function onWindowResize( event ) {
+    //	uniforms.resolution.value.x = window.innerWidth;
+    //	uniforms.resolution.value.y = window.innerHeight;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize( window.innerWidth, window.innerHeight );
+  }
+
+
+  function animate() {
+    requestAnimationFrame( animate );
+    render();
+  }
+
+
+  function render() {
+
+
+
+    var delta = clock.getDelta();
+    //uniforms.time.value += delta * 5;
+
+    //uniforms.imageIndex.value = Math.floor(globalCounter % tileNumber);
+    uniforms.imageIndex.value = Math.floor((0.5+Math.cos(globalCounter)/2) * tileNumber);
+
+    globalCounter += 0.025;
+
+    var radius = 1;
+    var plane = scene.children[ 0 ];
+
+    plane.position.x = guiVar.posx;
+    plane.position.y = guiVar.posy;
+    plane.position.z = guiVar.posz;
+
+    plane.rotation.x = guiVar.rotx;
+    plane.rotation.y = guiVar.roty;
+    plane.rotation.z = guiVar.rotz;
+
+
+    renderer.render( scene, camera );
+  }
+
+
+
+  </script>
+
+</body>
+</html>
