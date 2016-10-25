@@ -19,3 +19,10 @@ The same as `shader_nano_oblique.html` but using an algorithm from stack overflo
 
 ## shader_nano_oblique_jpegLoader.html
 Uses the same concept and interpolation as `shader_nano_oblique.html` but we are loading and decoding a jpeg image in native JS to put in a `THREE.DataTexture`.
+
+
+## shader_nano_oblique_multiload.html
+Uses the same concept and interpolation as `shader_nano_oblique.html` but sends an array of texture to see how responsive it remain. Only one texture is displayed though.
+
+## shader_micro_oblique_multiload.html
+Uses an Object3D filled with small planes, all having the same shader. Only one texture is loaded but it intersect with several planes.
