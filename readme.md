@@ -8,3 +8,10 @@ Use the vertex shader to find the 3D world coordinates and make them accessible 
 
 ## draggablecubes_shader_world_coord.html
 Just like `shader_world_coordinates.html` to adapt the color on the world coordinate positioning. This example is based on the [draggable cubes](https://threejs.org/examples/webgl_interactive_draggablecubes.html) of ThreeJS, so that playing with colors is easier.
+
+
+## shader_nano_oblique.html
+Map a 3D texture on a plane that we can move around. It uses world coordinates and nearest neighbor interpolation.
+
+## shader_nano_oblique2.html
+The same as `shader_nano_oblique.html` but using an algorithm from stack overflow to work with 2D texture as 3D texture. Uses linear interpolation.
