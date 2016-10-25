@@ -40,8 +40,6 @@
   <script src="js/dat.gui.js"></script>
 
 
-
-
   <!-- a regular version that just display one image from the strip image -->
   <!-- The index 0 of image (within strip) is at the bottom of the strip -->
   <script id="fragment_shader1_custom3" type="x-shader/x-fragment">
@@ -62,7 +60,7 @@
     y = v
     z = depth (image number within the strip)
   */
-  vec4 getColorFrom3DTexture( vec3 chunkPosition){
+  vec4 getColorFrom3DTexture(sampler2D texture, vec3 chunkPosition){
     // number of image that compose the strip
     float numberOfImagePerStripY = 64.0;
 
@@ -72,17 +70,11 @@
     // normalized starting point depending on the image index
     float yOffsetNormalized = float(int(chunkPosition.z * numberOfImagePerStripY)) / numberOfImagePerStripY;
 
-    // since the texture is in nearest neighbors, we dont need that
-    //float stripX = float(int(chunkPosition.x * numberOfPixelPerSide)) / numberOfPixelPerSide;
-
-    // since the texture is in nearest neighbors, we dont need that
-    //float stripY = (float(int(chunkPosition.y * numberOfPixelPerSide)) / numberOfPixelPerSide) / numberOfImagePerStripY + yOffsetNormalized;
-
     float stripX = chunkPosition.x;
     float stripY = chunkPosition.y / numberOfImagePerStripY + yOffsetNormalized;
 
     vec2 posWithinStrip = vec2(stripX, stripY);
-    vec4 colorFromTexture = texture2D(textures[0], posWithinStrip);
+    vec4 colorFromTexture = texture2D(texture, posWithinStrip);
 
     return colorFromTexture;
   }
@@ -93,13 +85,13 @@
     vec2 shaderPos = vUv;
 
     if(worldCoord.x < 0.0 || worldCoord.x >= 1.0 || worldCoord.y < 0.0 || worldCoord.y >= 1.0 || worldCoord.z < 0.0 || worldCoord.z >= 1.0){
-      gl_FragColor = vec4(1.0, 1.0 , 0.0, 0.3);
+      gl_FragColor = vec4(0.0, 1.0 , 1.0, 0.2);
     }else{
 
       //vec3 chunkPosition = vec3(shaderPos.x, shaderPos.y, 0.018);
       vec3 chunkPosition = vec3(worldCoord.x, worldCoord.y, worldCoord.z);
 
-      gl_FragColor = getColorFrom3DTexture(chunkPosition);
+      gl_FragColor = getColorFrom3DTexture(textures[0], chunkPosition);
     }
   }
 
@@ -177,7 +169,7 @@
     var cubeMesh = new THREE.Mesh( cubeGeometry, cubeMaterial );
     var cube = new THREE.BoxHelper( cubeMesh );
     cube.position.set( 0.5, 0.5, 0.5);
-    cube.material.color.set( 0x66dd66 );
+    cube.material.color.set( 0xFF6666 );
     scene.add(cube);
 
     scene.add(masterPlane);
@@ -230,8 +222,8 @@
     // size of the edge of the plane, and also the edge of the wire cube
     var edgeSize = 1;
 
-    var col = 20;
-    var row = 10;
+    var col = 3;
+    var row = 3;
 
     var geometry = new THREE.PlaneBufferGeometry( edgeSize, edgeSize, 1 );
 
@@ -268,7 +260,7 @@
 
         // adding the little plane
         var mesh = new THREE.Mesh( geometry, material );
-        mesh.position.set(-col*edgeSize/2 + i*edgeSize, -row*edgeSize/2 + j*edgeSize, 0.0);
+        mesh.position.set(-col*edgeSize/2 + i*edgeSize + edgeSize/2, -row*edgeSize/2 + j*edgeSize  + edgeSize/2, 0.0);
         masterPlane.add( mesh );
 
         /*
