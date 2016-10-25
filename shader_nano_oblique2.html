@@ -162,10 +162,13 @@
     //var texFile = "https://i.imgur.com/htmv5fE.jpg";
     var texFile = "textures/brain_strip.jpg";
 
-    uniforms = {
-      texture:    { value: new THREE.TextureLoader().load( texFile ) }
-    };
+    var texture = new THREE.TextureLoader().load( texFile );
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
 
+    uniforms = {
+      texture:    { value: texture }
+    };
 
     var material = new THREE.ShaderMaterial( {
       uniforms: uniforms,
@@ -178,7 +181,6 @@
     scene.add( mesh );
 
     var cubeGeometry = new THREE.BoxGeometry( 1, 1, 1 );
-
     var cubeMaterial = new THREE.MeshBasicMaterial();
     var cubeMesh = new THREE.Mesh( cubeGeometry, cubeMaterial );
     var cube = new THREE.BoxHelper( cubeMesh );

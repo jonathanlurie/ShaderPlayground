@@ -35,11 +35,13 @@
 
   <div id="container"></div>
 
+  <script src="js/jpg.js"></script>
+  <script src="js/jpgjsWrapper/js/ImageData.js"></script>
+  <script src="js/jpgjsWrapper/js/JpegDistantReader.js"></script>
+
   <script src="js/three.js"></script>
   <script src="js/OrbitControls.js"></script>
   <script src="js/dat.gui.js"></script>
-
-
 
 
   <!-- a regular version that just display one image from the strip image -->
@@ -72,12 +74,6 @@
     // normalized starting point depending on the image index
     float yOffsetNormalized = float(int(chunkPosition.z * numberOfImagePerStripY)) / numberOfImagePerStripY;
 
-    // since the texture is in nearest neighbors, we dont need that
-    //float stripX = float(int(chunkPosition.x * numberOfPixelPerSide)) / numberOfPixelPerSide;
-
-    // since the texture is in nearest neighbors, we dont need that
-    //float stripY = (float(int(chunkPosition.y * numberOfPixelPerSide)) / numberOfPixelPerSide) / numberOfImagePerStripY + yOffsetNormalized;
-
     float stripX = chunkPosition.x;
     float stripY = chunkPosition.y / numberOfImagePerStripY + yOffsetNormalized;
 
@@ -100,6 +96,8 @@
       vec3 chunkPosition = vec3(worldCoord.x, worldCoord.y, worldCoord.z);
 
       gl_FragColor = getColorFrom3DTexture(chunkPosition);
+      //gl_FragColor = vec4(worldCoord.x, worldCoord.y, worldCoord.z , 0.0);
+
     }
   }
 
@@ -161,13 +159,15 @@
   init();
   animate();
 
-  console.log(scene.children[ 0 ]);
-
   function init() {
     container = document.getElementById( 'container' );
     camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 0.1, 3000 );
     camera.position.z = 7;
     scene = new THREE.Scene();
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setPixelRatio( window.devicePixelRatio );
+    container.appendChild( renderer.domElement );
 
     var geometry = new THREE.PlaneBufferGeometry( 1, 1, 1 );
 
@@ -177,15 +177,39 @@
     //var texFile = "textures/strip3.png";
     //var texFile = "textures/rainbow2.png";
 
-    var texture = new THREE.TextureLoader().load( texFile );
-    texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = THREE.NearestFilter;
-
 
     uniforms = {
-      texture:    { value: texture }
+      texture:    { value: new THREE.Texture( )}
     };
 
+    let myImage = new ImageData();
+
+    // Things to do when the image is eventually loaded
+    myImage.isLoaded(function(img){
+      // DataTexture( data, width, height, format, type, mapping, wrapS, wrapT, magFilter, minFilter, anisotropy )
+
+      var texture = new THREE.DataTexture(
+        img._data,
+        img.getWidth(),
+        img.getHeight(),
+        THREE.LuminanceFormat,  // format, luminance is for 1-band image
+        THREE.UnsignedByteType  // type for our Uint8Array
+      );
+
+
+
+      texture.needsUpdate = true;
+
+      uniforms.texture.value = texture;
+
+    });
+
+
+    // the jpeg reader over http
+    let jpgReader = new JpegDistantReader();
+
+    // reads the jpeg at url and store the necessary data into myImage
+    jpgReader.decodeImage(texFile, myImage);
 
     var material = new THREE.ShaderMaterial( {
       uniforms: uniforms,
@@ -205,9 +229,7 @@
     cube.material.color.set( 0x66dd66 );
     scene.add( cube );
 
-    renderer = new THREE.WebGLRenderer();
-    renderer.setPixelRatio( window.devicePixelRatio );
-    container.appendChild( renderer.domElement );
+
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     onWindowResize();

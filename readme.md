@@ -15,3 +15,7 @@ Map a 3D texture on a plane that we can move around. It uses world coordinates a
 
 ## shader_nano_oblique2.html
 The same as `shader_nano_oblique.html` but using an algorithm from stack overflow to work with 2D texture as 3D texture. Uses linear interpolation.
+
+
+## shader_nano_oblique_jpegLoader.html
+Uses the same concept and interpolation as `shader_nano_oblique.html` but we are loading and decoding a jpeg image in native JS to put in a `THREE.DataTexture`.
