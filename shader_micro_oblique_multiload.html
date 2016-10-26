@@ -45,8 +45,10 @@
   <script id="fragment_shader1_custom3" type="x-shader/x-fragment">
 
   uniform sampler2D textures[1];
-  varying vec4 worldCoord;
+  uniform vec3 textureOrigins[1];
+  uniform float chunkSize;
 
+  varying vec4 worldCoord;
   varying vec2 vUv;
 
   bool isNan(float val)
@@ -56,11 +58,22 @@
 
   /*
     position is a [x, y, z] vector in [0.0; 1.0] within the texture chunk.
-    x = u
-    y = v
-    z = depth (image number within the strip)
+    Args:
+      x = u
+      y = v
+      z = depth (image number within the strip)
+      texture = the texture strip (to simulate a 3D tex)
   */
   vec4 getColorFrom3DTexture(sampler2D texture, vec3 chunkPosition){
+
+    // if out of the cube
+    if( chunkPosition.x<0.0 || chunkPosition.x>=1.0 ||
+        chunkPosition.y<0.0 || chunkPosition.y>=1.0 ||
+        chunkPosition.z<0.0 || chunkPosition.z>=1.0)
+    {
+      return vec4(0.0, 1.0 , 1.0, 0.2);
+    }
+
     // number of image that compose the strip
     float numberOfImagePerStripY = 64.0;
 
@@ -79,20 +92,36 @@
     return colorFromTexture;
   }
 
+
+  /*
+    translate world coordinates to chunk relative coordinates
+    giving a chunk center and size.
+
+    Return a vec3 with xyz in [0.0, 1.0]
+  */
+  vec3 worldCoord2ChunkCoord(vec4 world, vec3 textureOrigin, float chunkSize){
+    vec3 chunkSystemCoordinate = vec3((textureOrigin.x - world.x)*(-1.0)/chunkSize,
+                                      (textureOrigin.y - world.y)*(-1.0)/chunkSize,
+                                      (textureOrigin.z - world.z)*(-1.0)/chunkSize);
+
+    return chunkSystemCoordinate;
+
+  }
+
   void main( void ) {
 
     // the position within the shader
     vec2 shaderPos = vUv;
 
-    if(worldCoord.x < 0.0 || worldCoord.x >= 1.0 || worldCoord.y < 0.0 || worldCoord.y >= 1.0 || worldCoord.z < 0.0 || worldCoord.z >= 1.0){
-      gl_FragColor = vec4(0.0, 1.0 , 1.0, 0.2);
-    }else{
 
-      //vec3 chunkPosition = vec3(shaderPos.x, shaderPos.y, 0.018);
-      vec3 chunkPosition = vec3(worldCoord.x, worldCoord.y, worldCoord.z);
+    //textureOrigins[1];
+    //chunkSize;
 
-      gl_FragColor = getColorFrom3DTexture(textures[0], chunkPosition);
-    }
+    //vec3 chunkPosition = vec3(worldCoord.x, worldCoord.y, worldCoord.z);
+    vec3 chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[0], chunkSize);
+
+    gl_FragColor = getColorFrom3DTexture(textures[0], chunkPosition);
+
   }
 
   </script>
@@ -101,6 +130,8 @@
 
 
   <script id="vertexShader_custom1" type="x-shader/x-vertex">
+  uniform vec3 textureOrigins[1];
+  uniform float chunkSize;
 
   varying vec2 vUv;
   varying vec4 worldCoord;
@@ -114,9 +145,6 @@
   }
 
   </script>
-
-
-
 
 
   <script>
@@ -133,22 +161,27 @@
   var masterPlane = new THREE.Object3D();
   masterPlane.name = "masterPlane";
 
+  var textures = [];
+  var textureOrigins = [];
+  textureOrigins.push(new THREE.Vector3(-1, -1, -1));
+  var chunkSize = 2; // size of the chunk cube in wolrd coordinates
+
 
   var PI = Math.PI;
 
   var guiVar = {
-    posx: 0.5,
-    posy: 0.5,
-    posz: 0.5,
+    posx: textureOrigins[0].x + chunkSize/2 ,
+    posy: textureOrigins[0].y + chunkSize/2,
+    posz: textureOrigins[0].z + chunkSize/2,
     rotx: 0.0,
     roty: 0.0,
     rotz: 0.0
   }
 
   var gui = new dat.GUI();
-  gui.add(guiVar, 'posx', 0, 1).name("position x").step(0.001);
-  gui.add(guiVar, 'posy', 0, 1).name("position y").step(0.001);
-  gui.add(guiVar, 'posz', 0, 1).name("position z").step(0.001);
+  gui.add(guiVar, 'posx', (textureOrigins[0].x + chunkSize/2)-2,(textureOrigins[0].x + chunkSize/2) + 2).name("position x").step(0.001);
+  gui.add(guiVar, 'posy',(textureOrigins[0].y + chunkSize/2) -2,(textureOrigins[0].y + chunkSize/2) +2).name("position y").step(0.001);
+  gui.add(guiVar, 'posz',(textureOrigins[0].z + chunkSize/2) -2,(textureOrigins[0].z + chunkSize/2)+ 2).name("position z").step(0.001);
 
   gui.add(guiVar, 'rotx', -PI/2, PI/2).name("rotation x").step(0.01);
   gui.add(guiVar, 'roty', -PI/2, PI/2).name("rotation y").step(0.01);
@@ -164,15 +197,24 @@
     scene = new THREE.Scene();
 
     // adding the wire cube
-    var cubeGeometry = new THREE.BoxGeometry( 1, 1, 1 );
+    var cubeGeometry = new THREE.BoxGeometry( chunkSize, chunkSize, chunkSize );
     var cubeMaterial = new THREE.MeshBasicMaterial();
     var cubeMesh = new THREE.Mesh( cubeGeometry, cubeMaterial );
     var cube = new THREE.BoxHelper( cubeMesh );
-    cube.position.set( 0.5, 0.5, 0.5);
+    cube.position.copy(textureOrigins[0]);
+    cube.position.x += chunkSize/2;
+    cube.position.y += chunkSize/2;
+    cube.position.z += chunkSize/2;
     cube.material.color.set( 0xFF6666 );
     scene.add(cube);
 
+
+
     scene.add(masterPlane);
+
+
+    var axisHelper = new THREE.AxisHelper( 1 );
+    scene.add( axisHelper );
 
     fillMasterPlane();
 
@@ -227,7 +269,7 @@
 
     var geometry = new THREE.PlaneBufferGeometry( edgeSize, edgeSize, 1 );
 
-    var textures = [];
+
 
     for(var i=0; i<1; i++){
       var texture = new THREE.TextureLoader().load( "textures/bunch/brain_strip_" + i + ".jpg" );
@@ -238,7 +280,20 @@
 
 
     uniforms = {
-      textures:    { value: textures }
+      // the textures
+      textures: {
+        type: "t",
+        value: textures
+      },
+      // the texture origins (in the same order)
+      textureOrigins: {
+        type: "v3v",
+        value: textureOrigins
+      },
+      chunkSize : {
+        type: "f",
+        value: chunkSize
+      }
     };
 
     var material = new THREE.ShaderMaterial( {

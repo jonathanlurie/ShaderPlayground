@@ -25,7 +25,8 @@ Uses the same concept and interpolation as `shader_nano_oblique.html` but we are
 Uses the same concept and interpolation as `shader_nano_oblique.html` but sends an array of texture to see how responsive it remain. Only one texture is displayed though.
 
 ## shader_micro_oblique_multiload.html
-Uses an Object3D filled with small planes, all having the same shader. Only one texture is loaded but it intersect with several planes.
+Uses an Object3D filled with small planes, all having the same shader. Only one texture is loaded but it intersect with several planes.  
+In addition, we are now able to define the texture chunk position and size in world coordinates.
 
 
 # Next steps
