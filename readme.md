@@ -30,8 +30,8 @@ In addition, we are now able to define the texture chunk position and size in wo
 
 
 # Next steps
-- simulate a different world coord for a texture chunk (JS and shader)
-- implement a data structure to index textures depending on their 3D world position
-- create a quick algorithm to make a first pass on all the chunks that do not intersect the plane (JS), based on chunk center distance to the plane AND on the neighboring (like a filling algo). Must be fast. Should get rid of 95% of chunks.
-- create the algorithm to clean the first pass and keep only the chunk that intersect the plane FOR SURE (will be sent to gpu).
-- Decide of a size for the mini planes. Will certainly depend on the viewport/zooming
+- [x] simulate a different world coord for a texture chunk (JS and shader)
+- [ ] implement a data structure to index textures depending on their 3D world position
+- [ ] create a quick algorithm to make a first pass on all the chunks that do not intersect the plane (JS), based on chunk center distance to the plane AND on the neighboring (like a filling algo). Must be fast. Should get rid of 95% of chunks.
+- [ ] create the algorithm to clean the first pass and keep only the chunk that intersect the plane FOR SURE (will be sent to gpu).
+- [ ] Decide of a size for the mini planes. Will certainly depend on the viewport/zooming
