@@ -28,6 +28,8 @@ Uses the same concept and interpolation as `shader_nano_oblique.html` but sends 
 Uses an Object3D filled with small planes, all having the same shader. Only one texture is loaded but it intersect with several planes.  
 In addition, we are now able to define the texture chunk position and size in world coordinates.
 
+## shader_micro_oblique_multiload2.html
+Same as `## shader_micro_oblique_multiload.html` but uses 2 contiguous chunks.
 
 # Next steps
 - [x] simulate a different world coord for a texture chunk (JS and shader)

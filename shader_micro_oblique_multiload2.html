@@ -43,10 +43,12 @@
   <!-- a regular version that just display one image from the strip image -->
   <!-- The index 0 of image (within strip) is at the bottom of the strip -->
   <script id="fragment_shader1_custom3" type="x-shader/x-fragment">
+  const int nbTex = 4;
+  uniform sampler2D textures[nbTex];
+  uniform vec3 textureOrigins[nbTex];
 
-  uniform sampler2D textures[1];
-  uniform vec3 textureOrigins[1];
   uniform float chunkSize;
+  uniform int nbChunks;
 
   varying vec4 worldCoord;
   varying vec2 vUv;
@@ -127,6 +129,8 @@
 
   }
 
+
+
   void main( void ) {
 
     // the position within the shader
@@ -138,16 +142,65 @@
     //textureOrigins[1];
     //chunkSize;
 
-    //vec3 chunkPosition = vec3(worldCoord.x, worldCoord.y, worldCoord.z);
-    vec3 chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[0], chunkSize);
+    /*
+    // for each chunk, we try to get the color of the current texel.
+    // If we dont find it (out of the chunk in world coord)
+    for(int i=0; i<nbTex; i++){
+      // translate from world coord to the current chunk (i) relative coord
+      vec3 chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[i], chunkSize);
 
+      // if texel in the chunk ...
+      if( isInsideChunk(chunkPosition) ){
 
+        // ... we get the color
+        getColorFrom3DTexture(  textures[i],    // in
+                                chunkPosition,  // in
+                                color);         // out
+      }
 
-    if( isInsideChunk(chunkPosition) ){
-      getColorFrom3DTexture(  textures[0],    // in
-                              chunkPosition,  // in
-                              color);         // out
     }
+    */
+
+
+    /*
+    const int index = 3;
+
+    vec3 chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[index], chunkSize);
+    if( isInsideChunk(chunkPosition) ){
+      getColorFrom3DTexture(textures[index], chunkPosition, color);
+    }
+    */
+
+    /*
+    for(int i=0; i<nbTex; i++){
+      getColorWorldCoord(i, color);
+    }
+    */
+
+    vec3 chunkPosition;
+
+    chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[0], chunkSize);
+    if( isInsideChunk(chunkPosition) ){
+      getColorFrom3DTexture(textures[0], chunkPosition, color);
+    }
+
+    chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[1], chunkSize);
+    if( isInsideChunk(chunkPosition) ){
+      getColorFrom3DTexture(textures[1], chunkPosition, color);
+    }
+
+    chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[2], chunkSize);
+    if( isInsideChunk(chunkPosition) ){
+      getColorFrom3DTexture(textures[2], chunkPosition, color);
+    }
+
+    chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[3], chunkSize);
+    if( isInsideChunk(chunkPosition) ){
+      getColorFrom3DTexture(textures[3], chunkPosition, color);
+    }
+
+
+
 
     gl_FragColor = color;
 
@@ -159,7 +212,7 @@
 
 
   <script id="vertexShader_custom1" type="x-shader/x-vertex">
-  uniform vec3 textureOrigins[1];
+  //uniform vec3 textureOrigins[2];
   uniform float chunkSize;
 
   varying vec2 vUv;
@@ -190,11 +243,22 @@
   var masterPlane = new THREE.Object3D();
   masterPlane.name = "masterPlane";
 
+  var chunkSize = 1; // size of the chunk cube in wolrd coordinates
   var textures = [];
   var textureOrigins = [];
-  textureOrigins.push(new THREE.Vector3(-1, -1, -1));
-  var chunkSize = 2; // size of the chunk cube in wolrd coordinates
+  var texturePaths = [];
 
+  texturePaths.push("textures/bigbrain1/192-256_192-256");
+  textureOrigins.push(new THREE.Vector3(0, 0, 0));
+
+  texturePaths.push("textures/bigbrain1/192-256_128-192");
+  textureOrigins.push(new THREE.Vector3(0, 0, 1));
+
+  texturePaths.push("textures/bigbrain1/256-320_192-256");
+  textureOrigins.push(new THREE.Vector3(0, -1, 0));
+
+  texturePaths.push("textures/bigbrain1/256-320_128-192");
+  textureOrigins.push(new THREE.Vector3(0, -1, 1));
 
   var PI = Math.PI;
 
@@ -291,17 +355,17 @@
   function fillMasterPlane(){
 
     // size of the edge of the plane, and also the edge of the wire cube
-    var edgeSize = 1;
+    var edgeSize = 0.25;
 
-    var col = 3;
-    var row = 3;
+    var col = 16;
+    var row = 16;
 
     var geometry = new THREE.PlaneBufferGeometry( edgeSize, edgeSize, 1 );
 
 
 
-    for(var i=0; i<1; i++){
-      var texture = new THREE.TextureLoader().load( "textures/bunch/brain_strip_" + i + ".jpg" );
+    for(var i=0; i<texturePaths.length; i++){
+      var texture = new THREE.TextureLoader().load(texturePaths[i]);
       texture.magFilter = THREE.NearestFilter;
       texture.minFilter = THREE.NearestFilter;
       textures.push(texture);
@@ -310,6 +374,10 @@
 
     uniforms = {
       // the textures
+      nbChunks: {
+        type: "i",
+        value: textures.length
+      },
       textures: {
         type: "t",
         value: textures
@@ -347,14 +415,18 @@
         mesh.position.set(-col*edgeSize/2 + i*edgeSize + edgeSize/2, -row*edgeSize/2 + j*edgeSize  + edgeSize/2, 0.0);
         masterPlane.add( mesh );
 
-        /*
+
         // adding the wire cube
+        var cubeGeometry = new THREE.BoxGeometry( edgeSize, edgeSize, edgeSize );
+        var cubeMaterial = new THREE.MeshBasicMaterial();
         var cubeMesh = new THREE.Mesh( cubeGeometry, cubeMaterial );
         var cube = new THREE.BoxHelper( cubeMesh );
-        cube.position.set(-col*edgeSize/2 + i*edgeSize, -row*edgeSize/2 + j*edgeSize, 0.0);
+        //cube.position.set(-col*edgeSize/2 + i*edgeSize + edgeSize/2, -row*edgeSize/2 + j*edgeSize + edgeSize/2, 0.0);
+        cube.position.set(edgeSize*((-col+1)/2 + i), edgeSize*((-row+1)/2 + j), 0);
+
         cube.material.color.set( 0x66dd66 );
         masterPlane.add(cube);
-        */
+
       }
     }
 
