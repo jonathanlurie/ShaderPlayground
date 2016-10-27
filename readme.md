@@ -37,3 +37,4 @@ Same as `## shader_micro_oblique_multiload.html` but uses 2 contiguous chunks.
 - [ ] create a quick algorithm to make a first pass on all the chunks that do not intersect the plane (JS), based on chunk center distance to the plane AND on the neighboring (like a filling algo). Must be fast. Should get rid of 95% of chunks.
 - [ ] create the algorithm to clean the first pass and keep only the chunk that intersect the plane FOR SURE (will be sent to gpu).
 - [ ] Decide of a size for the mini planes. Will certainly depend on the viewport/zooming
+- [ ] Write a shader per file and load them dynamically

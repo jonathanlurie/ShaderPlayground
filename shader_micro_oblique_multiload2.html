@@ -227,7 +227,7 @@
   masterPlane.name = "masterPlane";
 
   var maxNbChunksPerShader = 8;
-  var chunkSize = 0.25; // size of the chunk cube in wolrd coordinates
+  var chunkSize = 1; // size of the chunk cube in wolrd coordinates
   var textures = [];
   var textureOrigins = [];
   var texturePaths = [];
@@ -252,7 +252,14 @@
     posz: textureOrigins[0].z + chunkSize/2,
     rotx: 0.0,
     roty: 0.0,
-    rotz: 0.0
+    rotz: 0.0,
+    debug: function(){
+      var aPlane = masterPlane.children[0];
+      console.log(aPlane);
+      //console.log(aPlane.getWorldPosition());
+      //console.log(aPlane.getWorldDirection());
+      //console.log(aPlane.getWorldScale());
+    }
   }
 
   var gui = new dat.GUI();
@@ -263,6 +270,11 @@
   gui.add(guiVar, 'rotx', -PI/2, PI/2).name("rotation x").step(0.01);
   gui.add(guiVar, 'roty', -PI/2, PI/2).name("rotation y").step(0.01);
   gui.add(guiVar, 'rotz', -PI/2, PI/2).name("rotation z").step(0.01);
+
+  // debug button
+  gui.add(guiVar, 'debug');
+
+
 
   init();
   animate();
@@ -284,8 +296,6 @@
     cube.position.z += chunkSize/2;
     cube.material.color.set( 0xFF6666 );
     scene.add(cube);
-
-
 
     scene.add(masterPlane);
 
@@ -321,8 +331,6 @@
 
 
   function render() {
-
-
     masterPlane.position.x = guiVar.posx;
     masterPlane.position.y = guiVar.posy;
     masterPlane.position.z = guiVar.posz;
@@ -332,6 +340,16 @@
     masterPlane.rotation.z = guiVar.rotz;
 
     renderer.render( scene, camera );
+
+
+
+    console.log('---------------------------------------------------------');
+    var aPlane = masterPlane.children[0];
+    var planeNormal = aPlane.getWorldDirection();
+    var planePoint = aPlane.getWorldPosition()
+    //getChunkMiniPlaneCenterDistance(0, 0)
+    var planeNormal = aPlane.getWorldDirection();
+    console.log(chunkWholePlaneIntersection(0, planePoint, planeNormal ) );
   }
 
 
@@ -351,7 +369,10 @@
   }
 
 
-
+  /*
+    Fills the texture array with some fake tiny texture, all that because
+    the shader only accepts constant sized array.
+  */
   function fillWithFakeTexture(){
     var nbRealTexture = textures.length;
     var fakeTexture = getFakeTexture();
@@ -368,8 +389,8 @@
     // size of the edge of the plane, and also the edge of the wire cube
     var edgeSize = chunkSize / 2;
 
-    var col = 15;
-    var row = 15;
+    var col = 10;
+    var row = 10;
 
     var geometry = new THREE.PlaneBufferGeometry( edgeSize, edgeSize, 1 );
 
@@ -413,6 +434,9 @@
     material.side = THREE.DoubleSide;
     material.transparent = true;
 
+    var counter = 0;
+    var flag = 0;
+
     for(j=0; j<row; j++){
       for(i=0; i<col; i++){
 
@@ -430,16 +454,158 @@
         cube.position.set(edgeSize*((-col+1)/2 + i), edgeSize*((-row+1)/2 + j), 0);
         cube.material.color.set( 0x66dd66 );
         masterPlane.add(cube);
-        */
 
+        if(counter == flag)
+          cube.material.color.set( 0x6666dd );
+        */
+        counter ++;
       }
     }
+
+
+
 
 
   }
 
 
 
+
+  /*
+    returns the distance betwwen the center of a mini plane
+    and the center of a chunk.
+  */
+  function getChunkMiniPlaneCenterDistance(chunkIndex, miniPlaneIndex){
+    var aPlane = masterPlane.children[miniPlaneIndex];
+    var planeCenter = aPlane.getWorldPosition();
+
+    var chunkCenter = new THREE.Vector3(textureOrigins[chunkIndex].x + chunkSize/2, textureOrigins[chunkIndex].y + chunkSize/2, textureOrigins[chunkIndex].z + chunkSize/2);
+
+    var distance = planeCenter.distanceTo(chunkCenter);
+    var manhattanDistance = planeCenter.distanceToManhattan (chunkCenter);
+
+    console.log("miniplane distance: " + distance);
+    console.log("miniplane manhattan distance: " + manhattanDistance);
+  }
+
+
+  /*
+    Compute the signed distance between a point and a plane.
+    Args:
+      point: THREE.Vector3 - a point in the space
+      planePoint: THREE.Vector3 - a point from the plane.
+                  Its proximity fromt "point" wont affect the result
+      planeNormal: THREE.Vector3 - The normalized vector that charactise the plane
+                   Its direction will affect the sign of the distance.
+
+  */
+  function getPointToPlaneDistance(point, planePoint, planeNormal){
+    // a point in space
+    var x = point.x;
+    var y = point.y;
+    var z = point.z;
+
+    // a point on the plane
+    var x0 = planePoint.x;
+    var y0 = planePoint.y;
+    var z0 = planePoint.z;
+
+    // the normal of the plane
+    var A = planeNormal.x;
+    var B = planeNormal.y;
+    var C = planeNormal.z;
+    var D = -A*x0 - B*y0 - C*z0;
+
+    var distNumerator = A*(x-x0) + B*(y-y0) + C*(z-z0);
+    var distDenominator = 1; // length of plane normal vector
+    var distance = distNumerator / distDenominator;
+
+    return distance;
+  }
+
+
+  /*
+    return true if the whole plane intersects the chunk with the given index.
+    Args:
+      chunkIndex: Int - to localize the chunk from array of chunks
+      planePoint: THREE.Vector3 - a point that belongs to the plane
+      planeNormal: THREE.Vector3 - the plane normal vector
+  */
+  function chunkWholePlaneIntersection(chunkIndex, planePoint, planeNormal){
+
+    var chunkCenter = new THREE.Vector3(textureOrigins[chunkIndex].x + chunkSize/2, textureOrigins[chunkIndex].y + chunkSize/2, textureOrigins[chunkIndex].z + chunkSize/2);
+
+    // TODO: could be externalized, the same for all chunks
+    // above this distance from the center, the plane does not cross the chunk,
+    // we are sure about it.
+    var halfLongDiag = Math.sqrt( (chunkSize/2)*(chunkSize/2)*3 );
+
+    var distanceFromCenter = Math.abs( getPointToPlaneDistance(chunkCenter, planePoint, planeNormal) );
+
+    // the plane is too far
+    if(distanceFromCenter > halfLongDiag)
+      return false;
+
+
+    // starting here, we still dont know if the plane intersect
+    // we just know it's pretty close
+
+    var chunkEdges = [
+      new THREE.Vector3(              // edge0 (origin)
+        textureOrigins[chunkIndex].x,
+        textureOrigins[chunkIndex].y,
+        textureOrigins[chunkIndex].z
+      ),
+      new THREE.Vector3(              // edge1
+        textureOrigins[chunkIndex].x,
+        textureOrigins[chunkIndex].y,
+        textureOrigins[chunkIndex].z + chunkSize
+      ),
+      new THREE.Vector3(              // edge2
+        textureOrigins[chunkIndex].x + chunkSize,
+        textureOrigins[chunkIndex].y,
+        textureOrigins[chunkIndex].z + chunkSize
+      ),
+      new THREE.Vector3(              // edge3
+        textureOrigins[chunkIndex].x + chunkSize,
+        textureOrigins[chunkIndex].y,
+        textureOrigins[chunkIndex].z
+      ),
+      new THREE.Vector3(              // edge4
+        textureOrigins[chunkIndex].x,
+        textureOrigins[chunkIndex].y + chunkSize,
+        textureOrigins[chunkIndex].z
+      ),
+      new THREE.Vector3(              // edge5
+        textureOrigins[chunkIndex].x,
+        textureOrigins[chunkIndex].y + chunkSize,
+        textureOrigins[chunkIndex].z + chunkSize
+      ),
+      new THREE.Vector3(              // edge6
+        textureOrigins[chunkIndex].x + chunkSize,
+        textureOrigins[chunkIndex].y + chunkSize,
+        textureOrigins[chunkIndex].z + chunkSize
+      ),
+      new THREE.Vector3(              // edge7
+        textureOrigins[chunkIndex].x + chunkSize,
+        textureOrigins[chunkIndex].y + chunkSize,
+        textureOrigins[chunkIndex].z
+      ),
+    ];
+
+    var sign = Math.sign( getPointToPlaneDistance(chunkEdges[0], planePoint, planeNormal) );
+
+    // check the sign of the distance from the plane to every other edges
+    for(i=1; i<8; i++){
+      var otherSign = Math.sign(getPointToPlaneDistance(chunkEdges[i], planePoint, planeNormal) );
+
+      // if we find a distance from an opposite sign
+      if( !(sign + otherSign) )
+        return true;
+    }
+
+    return false;
+  }
 
 
   </script>
