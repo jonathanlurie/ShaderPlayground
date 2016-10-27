@@ -43,12 +43,13 @@
   <!-- a regular version that just display one image from the strip image -->
   <!-- The index 0 of image (within strip) is at the bottom of the strip -->
   <script id="fragment_shader1_custom3" type="x-shader/x-fragment">
-  const int nbTex = 4;
-  uniform sampler2D textures[nbTex];
-  uniform vec3 textureOrigins[nbTex];
+  const int maxNbChunks = 8;
+  uniform int nbChunks;
+  uniform sampler2D textures[maxNbChunks];
+  uniform vec3 textureOrigins[maxNbChunks];
 
   uniform float chunkSize;
-  uniform int nbChunks;
+
 
   varying vec4 worldCoord;
   varying vec2 vUv;
@@ -63,15 +64,10 @@
     check if chunkPosition is in [0.0, 1.0]
   */
   bool isInsideChunk(in vec3 chunkPosition){
-    // if out of the cube
-    if( chunkPosition.x<0.0 || chunkPosition.x>=1.0 ||
-        chunkPosition.y<0.0 || chunkPosition.y>=1.0 ||
-        chunkPosition.z<0.0 || chunkPosition.z>=1.0)
-    {
-      return false;
-    }else{
-      return true;
-    }
+    // maybe optimal to return
+    return !( chunkPosition.x<0.0 || chunkPosition.x>=1.0 ||
+              chunkPosition.y<0.0 || chunkPosition.y>=1.0 ||
+              chunkPosition.z<0.0 || chunkPosition.z>=1.0 );
   }
 
 
@@ -84,16 +80,6 @@
       texture = the texture strip (to simulate a 3D tex)
   */
   vec4 getColorFrom3DTexture(in sampler2D texture, in vec3 chunkPosition, out vec4 colorFromTexture){
-
-    /*
-    // if out of the cube
-    if( chunkPosition.x<0.0 || chunkPosition.x>=1.0 ||
-        chunkPosition.y<0.0 || chunkPosition.y>=1.0 ||
-        chunkPosition.z<0.0 || chunkPosition.z>=1.0)
-    {
-      return vec4(0.0, 1.0 , 1.0, 0.2);
-    }
-    */
 
     // number of image that compose the strip
     float numberOfImagePerStripY = 64.0;
@@ -126,7 +112,6 @@
                                       (textureOrigin.z - world.z)*(-1.0)/chunkSize);
 
     return chunkSystemCoordinate;
-
   }
 
 
@@ -139,66 +124,64 @@
     // default color when out
     vec4 color = vec4(0.0, 1.0 , 1.0, 0.2);
 
-    //textureOrigins[1];
-    //chunkSize;
-
-    /*
-    // for each chunk, we try to get the color of the current texel.
-    // If we dont find it (out of the chunk in world coord)
-    for(int i=0; i<nbTex; i++){
-      // translate from world coord to the current chunk (i) relative coord
-      vec3 chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[i], chunkSize);
-
-      // if texel in the chunk ...
-      if( isInsideChunk(chunkPosition) ){
-
-        // ... we get the color
-        getColorFrom3DTexture(  textures[i],    // in
-                                chunkPosition,  // in
-                                color);         // out
-      }
-
-    }
-    */
-
-
-    /*
-    const int index = 3;
-
-    vec3 chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[index], chunkSize);
-    if( isInsideChunk(chunkPosition) ){
-      getColorFrom3DTexture(textures[index], chunkPosition, color);
-    }
-    */
-
-    /*
-    for(int i=0; i<nbTex; i++){
-      getColorWorldCoord(i, color);
-    }
-    */
-
     vec3 chunkPosition;
 
-    chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[0], chunkSize);
-    if( isInsideChunk(chunkPosition) ){
-      getColorFrom3DTexture(textures[0], chunkPosition, color);
-    }
+    if(nbChunks >= 1){
+      chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[0], chunkSize);
+      if( isInsideChunk(chunkPosition) ){
+        getColorFrom3DTexture(textures[0], chunkPosition, color);
+      }
 
-    chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[1], chunkSize);
-    if( isInsideChunk(chunkPosition) ){
-      getColorFrom3DTexture(textures[1], chunkPosition, color);
-    }
+      if(nbChunks >= 2){
+        chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[1], chunkSize);
+        if( isInsideChunk(chunkPosition) ){
+          getColorFrom3DTexture(textures[1], chunkPosition, color);
+        }
 
-    chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[2], chunkSize);
-    if( isInsideChunk(chunkPosition) ){
-      getColorFrom3DTexture(textures[2], chunkPosition, color);
-    }
+        if(nbChunks >= 3){
+          chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[2], chunkSize);
+          if( isInsideChunk(chunkPosition) ){
+            getColorFrom3DTexture(textures[2], chunkPosition, color);
+          }
 
-    chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[3], chunkSize);
-    if( isInsideChunk(chunkPosition) ){
-      getColorFrom3DTexture(textures[3], chunkPosition, color);
-    }
+          if(nbChunks >= 4){
+            chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[3], chunkSize);
+            if( isInsideChunk(chunkPosition) ){
+              getColorFrom3DTexture(textures[3], chunkPosition, color);
+            }
 
+            if(nbChunks >= 5){
+              chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[4], chunkSize);
+              if( isInsideChunk(chunkPosition) ){
+                getColorFrom3DTexture(textures[4], chunkPosition, color);
+              }
+
+              if(nbChunks >= 6){
+                chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[5], chunkSize);
+                if( isInsideChunk(chunkPosition) ){
+                  getColorFrom3DTexture(textures[5], chunkPosition, color);
+                }
+
+                if(nbChunks >= 7){
+                  chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[6], chunkSize);
+                  if( isInsideChunk(chunkPosition) ){
+                    getColorFrom3DTexture(textures[6], chunkPosition, color);
+                  }
+
+                  if(nbChunks == 8){
+                    chunkPosition = worldCoord2ChunkCoord(worldCoord, textureOrigins[7], chunkSize);
+                    if( isInsideChunk(chunkPosition) ){
+                      getColorFrom3DTexture(textures[7], chunkPosition, color);
+                    }
+
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
 
 
@@ -243,7 +226,8 @@
   var masterPlane = new THREE.Object3D();
   masterPlane.name = "masterPlane";
 
-  var chunkSize = 1; // size of the chunk cube in wolrd coordinates
+  var maxNbChunksPerShader = 8;
+  var chunkSize = 0.25; // size of the chunk cube in wolrd coordinates
   var textures = [];
   var textureOrigins = [];
   var texturePaths = [];
@@ -252,13 +236,13 @@
   textureOrigins.push(new THREE.Vector3(0, 0, 0));
 
   texturePaths.push("textures/bigbrain1/192-256_128-192");
-  textureOrigins.push(new THREE.Vector3(0, 0, 1));
+  textureOrigins.push(new THREE.Vector3(0, 0, chunkSize));
 
   texturePaths.push("textures/bigbrain1/256-320_192-256");
-  textureOrigins.push(new THREE.Vector3(0, -1, 0));
+  textureOrigins.push(new THREE.Vector3(0, -chunkSize, 0));
 
   texturePaths.push("textures/bigbrain1/256-320_128-192");
-  textureOrigins.push(new THREE.Vector3(0, -1, 1));
+  textureOrigins.push(new THREE.Vector3(0, -chunkSize, chunkSize));
 
   var PI = Math.PI;
 
@@ -351,18 +335,43 @@
   }
 
 
+  /*
+    return a fake tiny texture to complete the shader's sampler2D array
+  */
+  function getFakeTexture(){
+    var texture = new THREE.DataTexture(
+      new Uint8Array(4),
+      2,
+      2,
+      THREE.LuminanceFormat,  // format, luminance is for 1-band image
+      THREE.UnsignedByteType  // type for our Uint8Array
+    );
+
+    return texture;
+  }
+
+
+
+  function fillWithFakeTexture(){
+    var nbRealTexture = textures.length;
+    var fakeTexture = getFakeTexture();
+
+    for(i=nbRealTexture; i<maxNbChunksPerShader; i++){
+      textures.push(fakeTexture);
+      textureOrigins.push(new THREE.Vector3(0, 0, 0));
+    }
+  }
+
 
   function fillMasterPlane(){
 
     // size of the edge of the plane, and also the edge of the wire cube
-    var edgeSize = 0.25;
+    var edgeSize = chunkSize / 2;
 
-    var col = 16;
-    var row = 16;
+    var col = 15;
+    var row = 15;
 
     var geometry = new THREE.PlaneBufferGeometry( edgeSize, edgeSize, 1 );
-
-
 
     for(var i=0; i<texturePaths.length; i++){
       var texture = new THREE.TextureLoader().load(texturePaths[i]);
@@ -371,12 +380,15 @@
       textures.push(texture);
     }
 
+    var nbRealTexture = textures.length;
+
+    fillWithFakeTexture();
 
     uniforms = {
       // the textures
       nbChunks: {
         type: "i",
-        value: textures.length
+        value: nbRealTexture
       },
       textures: {
         type: "t",
@@ -401,12 +413,6 @@
     material.side = THREE.DoubleSide;
     material.transparent = true;
 
-
-
-
-
-
-
     for(j=0; j<row; j++){
       for(i=0; i<col; i++){
 
@@ -415,17 +421,16 @@
         mesh.position.set(-col*edgeSize/2 + i*edgeSize + edgeSize/2, -row*edgeSize/2 + j*edgeSize  + edgeSize/2, 0.0);
         masterPlane.add( mesh );
 
-
+        /*
         // adding the wire cube
         var cubeGeometry = new THREE.BoxGeometry( edgeSize, edgeSize, edgeSize );
         var cubeMaterial = new THREE.MeshBasicMaterial();
         var cubeMesh = new THREE.Mesh( cubeGeometry, cubeMaterial );
         var cube = new THREE.BoxHelper( cubeMesh );
-        //cube.position.set(-col*edgeSize/2 + i*edgeSize + edgeSize/2, -row*edgeSize/2 + j*edgeSize + edgeSize/2, 0.0);
         cube.position.set(edgeSize*((-col+1)/2 + i), edgeSize*((-row+1)/2 + j), 0);
-
         cube.material.color.set( 0x66dd66 );
         masterPlane.add(cube);
+        */
 
       }
     }
