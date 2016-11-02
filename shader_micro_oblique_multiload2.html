@@ -233,16 +233,17 @@
   var texturePaths = [];
 
   texturePaths.push("textures/bigbrain1/192-256_192-256");
-  textureOrigins.push(new THREE.Vector3(0, 0, 0));
+  textureOrigins.push(new THREE.Vector3(0, 0, -chunkSize));
+
 
   texturePaths.push("textures/bigbrain1/192-256_128-192");
-  textureOrigins.push(new THREE.Vector3(0, 0, chunkSize));
+  textureOrigins.push(new THREE.Vector3(0, 0, 0));
 
   texturePaths.push("textures/bigbrain1/256-320_192-256");
-  textureOrigins.push(new THREE.Vector3(0, -chunkSize, 0));
+  textureOrigins.push(new THREE.Vector3(0, -chunkSize, -chunkSize));
 
   texturePaths.push("textures/bigbrain1/256-320_128-192");
-  textureOrigins.push(new THREE.Vector3(0, -chunkSize, chunkSize));
+  textureOrigins.push(new THREE.Vector3(0, -chunkSize, 0));
 
   var PI = Math.PI;
 
@@ -358,9 +359,9 @@
   */
   function getFakeTexture(){
     var texture = new THREE.DataTexture(
-      new Uint8Array(4),
-      2,
-      2,
+      new Uint8Array(1),
+      1,
+      1,
       THREE.LuminanceFormat,  // format, luminance is for 1-band image
       THREE.UnsignedByteType  // type for our Uint8Array
     );
@@ -425,6 +426,12 @@
         value: chunkSize
       }
     };
+
+
+
+
+
+
 
     var material = new THREE.ShaderMaterial( {
       uniforms: uniforms,
